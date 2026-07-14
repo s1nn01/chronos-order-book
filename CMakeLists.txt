@@ -9,6 +9,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 add_executable(chronos
     src/main.cpp
     src/order.cpp
+    src/parser.cpp
 )
 
 target_include_directories(chronos PRIVATE
