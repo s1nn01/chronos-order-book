@@ -1,4 +1,7 @@
+#include "order.hpp"
+
 #include <cstdint>
+#include <exception>
 #include <iostream>
 #include <string>
 
@@ -35,6 +38,27 @@ int main()
         "Quantity",
         is_valid_quantity(quantity)
     );
+
+    try
+    {
+        const Order order(
+            1001,
+            Side::Buy,
+            price,
+            quantity,
+            1
+        );
+
+        std::cout << order.to_string() << '\n';
+    }
+    catch (const std::exception& exception)
+    {
+        std::cerr << "Error: "
+                  << exception.what()
+                  << '\n';
+
+        return 1;
+    }
 
     return 0;
 }

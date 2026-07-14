@@ -8,6 +8,11 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_executable(chronos
     src/main.cpp
+    src/order.cpp
+)
+
+target_include_directories(chronos PRIVATE
+    include
 )
 
 if(MSVC)
@@ -19,3 +24,4 @@ else()
         -Wpedantic
     )
 endif()
+
