@@ -1,6 +1,8 @@
 #include "order_book.hpp"
 
 #include <iterator>
+#include <cstdint>
+#include <ostream>
 
 bool OrderBook::add_order(const Order& order)
 {
@@ -137,4 +139,90 @@ OrderBook::best_ask() const noexcept
     }
 
     return asks_.begin()->first;
+}
+
+void OrderBook::print_snapshot(
+    std::ostream& output) const
+{
+    output << "\n========== ORDER BOOK ==========\n";
+
+    output << "ASKS — lowest price first\n";
+
+    if (asks_.empty())
+    {
+        output << "  <empty>\n";
+    }
+    else
+    {
+        for (const auto& [price, orders] : asks_)
+        {
+            std::uint64_t total_quantity = 0;
+
+            for (const Order& order : orders)
+            {
+                total_quantity +=
+                    order.remaining_quantity();
+            }
+
+            output << "  Price: " << price
+                   << " | Total quantity: "
+                   << total_quantity
+                   << " | Orders: "
+                   << orders.size()
+                   << '\n';
+
+            for (const Order& order : orders)
+            {
+                output
+                    << "    ID: " << order.id()
+                    << " | Quantity: "
+                    << order.remaining_quantity()
+                    << " | Sequence: "
+                    << order.sequence_number()
+                    << '\n';
+            }
+        }
+    }
+
+    output << "--------------------------------\n";
+
+    output << "BIDS — highest price first\n";
+
+    if (bids_.empty())
+    {
+        output << "  <empty>\n";
+    }
+    else
+    {
+        for (const auto& [price, orders] : bids_)
+        {
+            std::uint64_t total_quantity = 0;
+
+            for (const Order& order : orders)
+            {
+                total_quantity +=
+                    order.remaining_quantity();
+            }
+
+            output << "  Price: " << price
+                   << " | Total quantity: "
+                   << total_quantity
+                   << " | Orders: "
+                   << orders.size()
+                   << '\n';
+
+            for (const Order& order : orders)
+            {
+                output
+                    << "    ID: " << order.id()
+                    << " | Quantity: "
+                    << order.remaining_quantity()
+                    << " | Sequence: "
+                    << order.sequence_number()
+                    << '\n';
+            }
+        }
+    }
+
+    output << "================================\n\n";
 }

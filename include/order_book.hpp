@@ -8,6 +8,7 @@
 #include <map>
 #include <optional>
 #include <unordered_map>
+#include <iosfwd>
 
 class OrderBook
 {
@@ -28,6 +29,8 @@ public:
 
     [[nodiscard]] std::optional<Price>
     best_ask() const noexcept;
+
+    void print_snapshot(std::ostream& output) const;
 
 private:
     using OrderQueue = std::list<Order>;

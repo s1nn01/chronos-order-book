@@ -43,6 +43,8 @@ void print_top_of_book(
     std::cout << "\n\n";
 }
 
+
+
 int main()
 {
     std::cout << "Chronos C++ Matching Engine\n";
@@ -113,6 +115,7 @@ int main()
                         << '\n';
 
                     print_top_of_book(order_book);
+                    order_book.print_snapshot(std::cout);
                 }
                 catch (
                     const std::exception& exception)
@@ -137,6 +140,7 @@ int main()
                         << '\n';
 
                     print_top_of_book(order_book);
+                    order_book.print_snapshot(std::cout);
                 }
                 else
                 {
