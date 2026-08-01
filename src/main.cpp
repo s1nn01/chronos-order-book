@@ -1,4 +1,5 @@
 #include "order.hpp"
+#include "order_book.hpp"
 #include "parser.hpp"
 
 #include <cstdint>
@@ -6,13 +7,53 @@
 #include <iostream>
 #include <string>
 
+void print_top_of_book(
+    const OrderBook& order_book)
+{
+    std::cout << "Book size: "
+              << order_book.size()
+              << '\n';
+
+    std::cout << "Best bid: ";
+
+    if (const auto bid = order_book.best_bid();
+        bid.has_value())
+    {
+        std::cout << bid.value();
+    }
+    else
+    {
+        std::cout << "NONE";
+    }
+
+    std::cout << '\n';
+
+    std::cout << "Best ask: ";
+
+    if (const auto ask = order_book.best_ask();
+        ask.has_value())
+    {
+        std::cout << ask.value();
+    }
+    else
+    {
+        std::cout << "NONE";
+    }
+
+    std::cout << "\n\n";
+}
+
 int main()
 {
     std::cout << "Chronos C++ Matching Engine\n";
     std::cout << "Commands:\n";
-    std::cout << "  ADD <id> <BUY|SELL> <price> <quantity>\n";
+    std::cout
+        << "  ADD <id> <BUY|SELL> "
+        << "<price> <quantity>\n";
     std::cout << "  CANCEL <id>\n";
     std::cout << "  EXIT\n\n";
+
+    OrderBook order_book;
 
     std::uint64_t next_sequence = 1;
     std::string line;
@@ -27,11 +68,16 @@ int main()
         }
 
         std::string error;
-        const auto command = parse_command(line, error);
+
+        const auto command =
+            parse_command(line, error);
 
         if (!command.has_value())
         {
-            std::cerr << "Error: " << error << '\n';
+            std::cerr << "Error: "
+                      << error
+                      << '\n';
+
             continue;
         }
 
@@ -46,18 +92,35 @@ int main()
                         command->side,
                         command->price,
                         command->quantity,
-                        next_sequence++
+                        next_sequence
                     );
 
-                    std::cout << "Accepted: "
-                              << order.to_string()
-                              << '\n';
+                    if (!order_book.add_order(order))
+                    {
+                        std::cerr
+                            << "Error: order ID "
+                            << command->id
+                            << " already exists\n";
+
+                        break;
+                    }
+
+                    ++next_sequence;
+
+                    std::cout
+                        << "Accepted: "
+                        << order.to_string()
+                        << '\n';
+
+                    print_top_of_book(order_book);
                 }
-                catch (const std::exception& exception)
+                catch (
+                    const std::exception& exception)
                 {
-                    std::cerr << "Error: "
-                              << exception.what()
-                              << '\n';
+                    std::cerr
+                        << "Error: "
+                        << exception.what()
+                        << '\n';
                 }
 
                 break;
@@ -65,17 +128,32 @@ int main()
 
             case CommandType::Cancel:
             {
-                std::cout
-                    << "Cancellation requested for order "
-                    << command->id
-                    << '\n';
+                if (order_book.cancel_order(
+                        command->id))
+                {
+                    std::cout
+                        << "Cancelled order "
+                        << command->id
+                        << '\n';
+
+                    print_top_of_book(order_book);
+                }
+                else
+                {
+                    std::cerr
+                        << "Error: order "
+                        << command->id
+                        << " was not found\n";
+                }
 
                 break;
             }
 
             case CommandType::Exit:
             {
-                std::cout << "Chronos shutting down.\n";
+                std::cout
+                    << "Chronos shutting down.\n";
+
                 return 0;
             }
         }

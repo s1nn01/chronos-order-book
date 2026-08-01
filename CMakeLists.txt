@@ -12,6 +12,7 @@ add_executable(chronos
     src/main.cpp
     src/order.cpp
     src/parser.cpp
+    src/order_book.cpp
 )
 
 target_include_directories(chronos PRIVATE
