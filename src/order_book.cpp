@@ -1,12 +1,19 @@
 #include "order_book.hpp"
 
-#include <iterator>
+#include <algorithm>
 #include <cstdint>
+#include <iterator>
 #include <ostream>
+#include <stdexcept>
 
 bool OrderBook::add_order(const Order& order)
 {
     if (contains(order.id()))
+    {
+        return false;
+    }
+
+    if (order.remaining_quantity() == 0)
     {
         return false;
     }
@@ -108,6 +115,137 @@ bool OrderBook::cancel_order(const OrderId id)
     return true;
 }
 
+std::vector<Trade> OrderBook::submit_order(Order order)
+{
+    if (contains(order.id()))
+    {
+        throw std::invalid_argument(
+            "Order ID already exists"
+        );
+    }
+
+    std::vector<Trade> trades;
+
+    if (order.side() == Side::Buy)
+    {
+        trades = match_buy(order);
+    }
+    else
+    {
+        trades = match_sell(order);
+    }
+
+    if (order.remaining_quantity() > 0)
+    {
+        const bool added = add_order(order);
+
+        if (!added)
+        {
+            throw std::logic_error(
+                "Unable to rest unmatched order"
+            );
+        }
+    }
+
+    return trades;
+}
+
+std::vector<Trade>
+OrderBook::match_buy(Order& incoming)
+{
+    std::vector<Trade> trades;
+
+    while (
+        incoming.remaining_quantity() > 0 &&
+        !asks_.empty() &&
+        asks_.begin()->first <= incoming.price()
+    )
+    {
+        auto level = asks_.begin();
+        auto& orders = level->second;
+        auto resting = orders.begin();
+
+        const Quantity executed = std::min(
+            incoming.remaining_quantity(),
+            resting->remaining_quantity()
+        );
+
+        trades.push_back(
+            Trade{
+                next_trade_sequence_++,
+                resting->id(),
+                incoming.id(),
+                resting->price(),
+                executed
+            }
+        );
+
+        incoming.fill(executed);
+        resting->fill(executed);
+
+        if (resting->remaining_quantity() == 0)
+        {
+            order_index_.erase(resting->id());
+            orders.erase(resting);
+        }
+
+        if (orders.empty())
+        {
+            asks_.erase(level);
+        }
+    }
+
+    return trades;
+}
+
+std::vector<Trade>
+OrderBook::match_sell(Order& incoming)
+{
+    std::vector<Trade> trades;
+
+    while (
+        incoming.remaining_quantity() > 0 &&
+        !bids_.empty() &&
+        bids_.begin()->first >= incoming.price()
+    )
+    {
+        auto level = bids_.begin();
+        auto& orders = level->second;
+        auto resting = orders.begin();
+
+        const Quantity executed = std::min(
+            incoming.remaining_quantity(),
+            resting->remaining_quantity()
+        );
+
+        trades.push_back(
+            Trade{
+                next_trade_sequence_++,
+                resting->id(),
+                incoming.id(),
+                resting->price(),
+                executed
+            }
+        );
+
+        incoming.fill(executed);
+        resting->fill(executed);
+
+        if (resting->remaining_quantity() == 0)
+        {
+            order_index_.erase(resting->id());
+            orders.erase(resting);
+        }
+
+        if (orders.empty())
+        {
+            bids_.erase(level);
+        }
+    }
+
+    return trades;
+}
+
 bool OrderBook::contains(
     const OrderId id) const noexcept
 {
@@ -117,6 +255,20 @@ bool OrderBook::contains(
 std::size_t OrderBook::size() const noexcept
 {
     return order_index_.size();
+}
+
+std::optional<Quantity>
+OrderBook::remaining_quantity(
+    const OrderId id) const noexcept
+{
+    const auto found = order_index_.find(id);
+
+    if (found == order_index_.end())
+    {
+        return std::nullopt;
+    }
+
+    return found->second.iterator->remaining_quantity();
 }
 
 std::optional<Price>

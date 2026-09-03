@@ -21,6 +21,8 @@ public:
     [[nodiscard]] Quantity remaining_quantity() const noexcept;
     [[nodiscard]] std::uint64_t sequence_number() const noexcept;
 
+    void fill(Quantity quantity);
+
     [[nodiscard]] std::string to_string() const;
 
 private:

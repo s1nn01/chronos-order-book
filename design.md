@@ -88,3 +88,28 @@ The order book must always maintain these rules:
 * Orders at the same price remain in arrival order.
 * Empty price levels are removed.
 * Cancelling an unknown order does not modify the book.
+
+## Matching rules
+
+Incoming limit orders first attempt to match against the best prices on the opposite side.
+
+- An incoming buy can execute while `best_ask <= buy_limit_price`.
+- An incoming sell can execute while `best_bid >= sell_limit_price`.
+- Execution occurs at the resting (maker) order's price.
+- If quantities differ, the smaller quantity is executed and the larger order is partially filled.
+- A fully filled resting order is removed from both its FIFO price level and the order-ID index.
+- Empty price levels are erased.
+- If an incoming limit order still has quantity after all eligible matches, its remainder rests on the book with its original sequence number.
+
+### Complexity baseline
+
+| Operation | Baseline structure | Expected complexity |
+| --- | --- | --- |
+| Best bid / ask | first element of sorted `std::map` | O(1) after map lookup state is maintained |
+| New price level | `std::map` insertion | O(log P) |
+| Append at existing level | `std::list::push_back` | O(1) |
+| Order-ID lookup | `std::unordered_map` | O(1) average |
+| Cancel located order | stable `std::list` iterator + map lookup | O(1) average plus O(log P) if the price level becomes empty |
+| Match | walk only crossed resting orders | proportional to number of fills, with level erasure costs |
+
+`P` is the number of active price levels. This is a correctness-first baseline rather than a claim that the STL layout is optimal for production low-latency trading.

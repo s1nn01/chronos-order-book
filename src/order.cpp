@@ -63,6 +63,25 @@ std::uint64_t Order::sequence_number() const noexcept
     return sequence_number_;
 }
 
+void Order::fill(const Quantity quantity)
+{
+    if (quantity == 0)
+    {
+        throw std::invalid_argument(
+            "Fill quantity must be greater than zero"
+        );
+    }
+
+    if (quantity > remaining_quantity_)
+    {
+        throw std::invalid_argument(
+            "Fill quantity exceeds remaining order quantity"
+        );
+    }
+
+    remaining_quantity_ -= quantity;
+}
+
 std::string Order::to_string() const
 {
     std::ostringstream output;

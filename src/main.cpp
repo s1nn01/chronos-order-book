@@ -1,11 +1,13 @@
 #include "order.hpp"
 #include "order_book.hpp"
 #include "parser.hpp"
+#include "trade.hpp"
 
 #include <cstdint>
 #include <exception>
 #include <iostream>
 #include <string>
+#include <vector>
 
 void print_top_of_book(
     const OrderBook& order_book)
@@ -43,7 +45,19 @@ void print_top_of_book(
     std::cout << "\n\n";
 }
 
-
+void print_trades(const std::vector<Trade>& trades)
+{
+    for (const Trade& trade : trades)
+    {
+        std::cout
+            << "TRADE #" << trade.sequence_number
+            << " maker=" << trade.maker_order_id
+            << " taker=" << trade.taker_order_id
+            << " price=" << trade.price
+            << " quantity=" << trade.quantity
+            << '\n';
+    }
+}
 
 int main()
 {
@@ -89,31 +103,32 @@ int main()
             {
                 try
                 {
-                    const Order order(
-                        command->id,
-                        command->side,
-                        command->price,
-                        command->quantity,
-                        next_sequence
-                    );
-
-                    if (!order_book.add_order(order))
+                    if (order_book.contains(command->id))
                     {
                         std::cerr
                             << "Error: order ID "
                             << command->id
                             << " already exists\n";
-
                         break;
                     }
 
-                    ++next_sequence;
+                    const Order order(
+                        command->id,
+                        command->side,
+                        command->price,
+                        command->quantity,
+                        next_sequence++
+                    );
+
+                    const auto trades =
+                        order_book.submit_order(order);
 
                     std::cout
                         << "Accepted: "
                         << order.to_string()
                         << '\n';
 
+                    print_trades(trades);
                     print_top_of_book(order_book);
                     order_book.print_snapshot(std::cout);
                 }
